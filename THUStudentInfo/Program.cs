@@ -40,13 +40,13 @@ namespace THUStudentInfo
                     try
                     {
                         var html = HttpGet("http://bylx.cic.tsinghua.edu.cn/lxstulist.jsp?xh=null&xsh=&bylx=&flfx=&page=" + curpage, cookiesin: cookies);
-                        var pg = int.Parse(Regex.Match(html, "<td align=\"left\">(.+?)共(.+?)页", RegexOptions.Singleline).Groups[2].Value.Trim());
+                        var pg = int.Parse(Regex.Match(html, "<td align=\"left\">(.*?)共(.+?)页", RegexOptions.Singleline).Groups[2].Value.Trim());
                         if (curpage > pg) break;
                         var part1 = Regex.Matches(html, "<tr align=\"center\">(.+?)<\\/table>", RegexOptions.Singleline);
                         part1 = Regex.Matches(part1[0].Value, "<tr>(.+?)<\\/tr>", RegexOptions.Singleline);
                         foreach (Match match in part1)
                         {
-                            var part2 = Regex.Matches(match.Value, "<td>(.+?)<\\/td>", RegexOptions.Singleline);
+                            var part2 = Regex.Matches(match.Value, "<td>(.*?)<\\/td>", RegexOptions.Singleline);
                             long xh = -1;
                             if(long.TryParse(part2[1].Groups[1].Value,out xh))
                             {
@@ -93,7 +93,7 @@ namespace THUStudentInfo
                 var html = HttpGet(url + i, cookiesin: cookies);
                 var part1 = Regex.Match(html, "Layer3.+?<\\/div>", RegexOptions.Singleline);
                 if (!part1.Success) throw new Exception(i + " not exist.");
-                var matches = Regex.Matches(part1.Value, @"<b>(.+?)<\/b>", RegexOptions.Singleline);
+                var matches = Regex.Matches(part1.Value, @"<b>(.*?)<\/b>", RegexOptions.Singleline);
                 foreach (Match match in matches)
                 {
                     var str = match.Groups[1].Value;
