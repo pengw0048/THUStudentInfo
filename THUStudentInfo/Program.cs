@@ -40,8 +40,9 @@ namespace THUStudentInfo
                     try
                     {
                         var html = HttpGet("http://bylx.cic.tsinghua.edu.cn/lxstulist.jsp?xh=null&xsh=&bylx=&flfx=&page=" + curpage, cookiesin: cookies);
+                        var pg = int.Parse(Regex.Match(html, "<td align=\"left\">(.+?)共(.+?)页", RegexOptions.Singleline).Groups[2].Value.Trim());
+                        if (curpage > pg) break;
                         var part1 = Regex.Matches(html, "<tr align=\"center\">(.+?)<\\/table>", RegexOptions.Singleline);
-                        if (part1.Count == 0) break;
                         part1 = Regex.Matches(part1[0].Value, "<tr>(.+?)<\\/tr>", RegexOptions.Singleline);
                         foreach (Match match in part1)
                         {
