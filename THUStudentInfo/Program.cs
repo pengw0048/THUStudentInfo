@@ -111,7 +111,8 @@ namespace THUStudentInfo
                 Console.WriteLine(os);
                 sw.WriteLine(os);
                 sw.Flush();
-                HttpGetFile("http://bylx.cic.tsinghua.edu.cn/image.jsp?bylx=bylx&xh=" + i, i + ".jpg", cookies);
+                var img = Regex.Match(html, "src=\"\\.(.+)?\"").Groups[1].Value;
+                HttpGetFile("http://bylx.cic.tsinghua.edu.cn"+img, i + ".jpg", cookies);
             }
             catch (Exception e)
             {
