@@ -18,49 +18,104 @@ namespace THUStudentInfo
             var jses = Console.ReadLine();
             var cookies = new CookieCollection();
             cookies.Add(new Cookie("JSESSIONID", jses,"/", "bylx.cic.tsinghua.edu.cn"));
-            Console.Write("Start ID: ");
+            Console.Write("Start ID (0 for auto): ");
             var sid = long.Parse(Console.ReadLine());
-            Console.Write("End ID: ");
-            var eid = long.Parse(Console.ReadLine());
+            long eid = 0;
+            var url = "http://bylx.cic.tsinghua.edu.cn/lxsxbl.jsp?xh=";
+            if (sid != 0)
+            {
+                Console.Write("End ID: ");
+                eid = long.Parse(Console.ReadLine());
+                Console.Write("Current year? [y/n] ");
+                if (Console.ReadLine() == "n") url = "http://bylx.cic.tsinghua.edu.cn/lxsxbl_history.jsp?xh=";
+            }
             Console.Write("Request interval (s): ");
             var interval = int.Parse(Console.ReadLine()) * 1000;
-            Console.Write("Current year? [y/n] ");
-            var url = Console.ReadLine() == "n" ? "http://bylx.cic.tsinghua.edu.cn/lxsxbl_history.jsp?xh=" : "http://bylx.cic.tsinghua.edu.cn/lxsxbl.jsp?xh=";
-            using (var sw = new StreamWriter("result.csv", true, Encoding.GetEncoding("gbk")))
-                for (long i = sid; i <= eid; i++)
+            var xhs = new List<long>();
+            if (sid == 0)
+            {
+                var curpage = 1;
+                while (true)
                 {
                     try
                     {
-                        var os = "";
-                        var html = HttpGet(url + i, cookiesin: cookies);
-                        var part1 = Regex.Match(html, "Layer3.+?<\\/div>",RegexOptions.Singleline);
-                        if (!part1.Success) throw new Exception(i + " not exist.");
-                        var matches = Regex.Matches(part1.Value, @"<b>(.+?)<\/b>", RegexOptions.Singleline);
-                        foreach (Match match in matches)
+                        var html = HttpGet("http://bylx.cic.tsinghua.edu.cn/lxstulist.jsp?xh=null&xsh=&bylx=&flfx=&page=" + curpage, cookiesin: cookies);
+                        var part1 = Regex.Matches(html, "<tr align=\"center\">(.+?)<\\/table>", RegexOptions.Singleline);
+                        if (part1.Count == 0) break;
+                        part1 = Regex.Matches(part1[0].Value, "<tr>(.+?)<\\/tr>", RegexOptions.Singleline);
+                        foreach (Match match in part1)
                         {
-                            var str = match.Groups[1].Value;
-                            os += "\"" + str + "\",";
+                            var part2 = Regex.Matches(match.Value, "<td>(.+?)<\\/td>", RegexOptions.Singleline);
+                            long xh = -1;
+                            if(long.TryParse(part2[1].Groups[1].Value,out xh))
+                            {
+                                if (!File.Exists(xh + ".jpg"))
+                                {
+                                    Console.WriteLine(xh);
+                                    xhs.Add(xh);
+                                }
+                            }
                         }
-                        matches = Regex.Matches(html, "<td class=\"font10\"(.+?)<\\/", RegexOptions.Singleline);
-                        foreach (Match match in matches)
-                        {
-                            var str = match.Groups[1].Value;
-                            str = str.Substring(str.LastIndexOf('>') + 1);
-                            os += "\"" + str + "\",";
-                        }
-                        os += "\"\"";
-                        os = os.Replace("\r", "").Replace("\n", "").Replace("&nbsp;", " ");
-                        Console.WriteLine(os);
-                        sw.WriteLine(os);
-                        sw.Flush();
-                        HttpGetFile("http://bylx.cic.tsinghua.edu.cn/image.jsp?bylx=bylx&xh=" + i, i + ".jpg", cookies);
+                        curpage++;
                     }
-                    catch (Exception e)
+                    catch(Exception e)
                     {
                         Console.WriteLine(e.Message);
                     }
                     Thread.Sleep(interval);
                 }
+            }
+            using (var sw = new StreamWriter("result.csv", true, Encoding.GetEncoding("gbk")))
+                if (sid != 0)
+                {
+                    for (long i = sid; i <= eid; i++)
+                    {
+                        if(!File.Exists(i+".jpg"))
+                        go(i, url, cookies, sw);
+                        Thread.Sleep(interval);
+                    }
+                }else
+                {
+                    foreach (var i in xhs)
+                    {
+                        go(i, url, cookies, sw);
+                        Thread.Sleep(interval);
+                    }
+                }
+        }
+
+        static void go(long i, string url, CookieCollection cookies, StreamWriter sw)
+        {
+            try
+            {
+                var os = "";
+                var html = HttpGet(url + i, cookiesin: cookies);
+                var part1 = Regex.Match(html, "Layer3.+?<\\/div>", RegexOptions.Singleline);
+                if (!part1.Success) throw new Exception(i + " not exist.");
+                var matches = Regex.Matches(part1.Value, @"<b>(.+?)<\/b>", RegexOptions.Singleline);
+                foreach (Match match in matches)
+                {
+                    var str = match.Groups[1].Value;
+                    os += "\"" + str + "\",";
+                }
+                matches = Regex.Matches(html, "<td class=\"font10\"(.+?)<\\/", RegexOptions.Singleline);
+                foreach (Match match in matches)
+                {
+                    var str = match.Groups[1].Value;
+                    str = str.Substring(str.LastIndexOf('>') + 1);
+                    os += "\"" + str + "\",";
+                }
+                os += "\"\"";
+                os = os.Replace("\r", "").Replace("\n", "").Replace("&nbsp;", " ");
+                Console.WriteLine(os);
+                sw.WriteLine(os);
+                sw.Flush();
+                HttpGetFile("http://bylx.cic.tsinghua.edu.cn/image.jsp?bylx=bylx&xh=" + i, i + ".jpg", cookies);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
 
         public static string GetResponse(ref HttpWebRequest req, out CookieCollection cookies, bool GetLocation = false, bool GetRange = false, bool NeedResponse = true)
