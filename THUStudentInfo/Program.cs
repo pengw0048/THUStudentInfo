@@ -26,7 +26,7 @@ namespace THUStudentInfo
             var interval = int.Parse(Console.ReadLine()) * 1000;
             Console.Write("Current year? [y/n] ");
             var url = Console.ReadLine() == "n" ? "http://bylx.cic.tsinghua.edu.cn/lxsxbl_history.jsp?xh=" : "http://bylx.cic.tsinghua.edu.cn/lxsxbl.jsp?xh=";
-            using (var sw = new StreamWriter("result.csv", false, Encoding.GetEncoding("gbk")))
+            using (var sw = new StreamWriter("result.csv", true, Encoding.GetEncoding("gbk")))
                 for (long i = sid; i <= eid; i++)
                 {
                     try
@@ -52,6 +52,7 @@ namespace THUStudentInfo
                         os = os.Replace("\r", "").Replace("\n", "").Replace("&nbsp;", " ");
                         Console.WriteLine(os);
                         sw.WriteLine(os);
+                        sw.Flush();
                         HttpGetFile("http://bylx.cic.tsinghua.edu.cn/image.jsp?bylx=bylx&xh=" + i, i + ".jpg", cookies);
                     }
                     catch (Exception e)
